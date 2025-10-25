@@ -38,7 +38,7 @@ def generar_reporte_estudiante(estudiante_id: int, session: Session = Depends(ge
     return report_data
 
 
-@router.get("/reporte/profesores", summary="Listado de profesores y sus matrículas (Ex-Mecánicos)")
+@router.get("/reporte/profesores", summary="Listado de profesores y sus matrículas")
 def listar_profesores_con_matriculas(session: Session = Depends(get_session)):
     profesores_activos = session.exec(select(Profesor).where(Profesor.active == True)).all()
     

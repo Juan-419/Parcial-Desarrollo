@@ -14,7 +14,7 @@ def listar_matriculas(session: Session = Depends(get_session)):
     return session.exec(select(Matricula).where(Matricula.active == True)).all()
 
 
-@router.get("/eliminadas", response_model=List[Matricula], summary="Listar matrículas dadas de baja (borrado lógico)")
+@router.get("/eliminadas", response_model=List[Matricula], summary="Listar matrículas dadas de baja ")
 def listar_matriculas_eliminadas(session: Session = Depends(get_session)):
     return session.exec(select(Matricula).where(Matricula.active == False)).all()
 
@@ -84,7 +84,7 @@ def actualizar_matricula(matricula_id: int, matricula_actualizada: MatriculaCrea
     return matricula_db
 
 
-@router.delete("/{matricula_id}", summary="Marcar matrícula como eliminada (baja lógica)")
+@router.delete("/{matricula_id}", summary="Marcar matrícula como eliminada ")
 def eliminar_matricula(matricula_id: int, session: Session = Depends(get_session)):
     
     matricula = session.get(Matricula, matricula_id)

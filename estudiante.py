@@ -12,7 +12,7 @@ def listar_estudiantes(session: Session = Depends(get_session)):
     return session.exec(select(Estudiante).where(Estudiante.active == True)).all()
 
 
-@router.get("/eliminados", response_model=List[Estudiante], summary="Listar estudiantes dados de baja (borrado lógico)")
+@router.get("/eliminados", response_model=List[Estudiante], summary="Listar estudiantes dados de baja ")
 def listar_estudiantes_eliminados(session: Session = Depends(get_session)):
     return session.exec(select(Estudiante).where(Estudiante.active == False)).all()
 
@@ -50,7 +50,7 @@ def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(ge
     return db_estudiante
 
 
-@router.delete("/{estudiante_id}", summary="Marcar estudiante como eliminado (baja lógica)")
+@router.delete("/{estudiante_id}", summary="Marcar estudiante como eliminado ")
 def eliminar_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
     estudiante = session.get(Estudiante, estudiante_id)
     if not estudiante:

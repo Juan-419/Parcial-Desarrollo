@@ -13,7 +13,7 @@ def listar_materias(session: Session = Depends(get_session)):
     return session.exec(select(Materia).where(Materia.active == True)).all()
 
 
-@router.get("/eliminadas", response_model=List[Materia], summary="Listar materias dadas de baja (borrado lógico)")
+@router.get("/eliminadas", response_model=List[Materia], summary="Listar materias retiradas" )
 def listar_materias_eliminadas(session: Session = Depends(get_session)):
     return session.exec(select(Materia).where(Materia.active == False)).all()
 
@@ -46,7 +46,7 @@ def crear_materia(materia: MateriaCreate, session: Session = Depends(get_session
     return db_materia
 
 
-@router.delete("/{materia_id}", summary="Marcar materia como eliminada (baja lógica)")
+@router.delete("/{materia_id}", summary="Marcar materia como eliminada ")
 def eliminar_materia(materia_id: int, session: Session = Depends(get_session)):
     materia = session.get(Materia, materia_id)
     if not materia:

@@ -12,7 +12,7 @@ def listar_profesores(session: Session = Depends(get_session)):
     return session.exec(select(Profesor).where(Profesor.active == True)).all()
 
 
-@router.get("/eliminados", response_model=List[Profesor], summary="Listar profesores dados de baja (borrado lógico)")
+@router.get("/eliminados", response_model=List[Profesor], summary="Listar profesores que se fueron")
 def listar_profesores_eliminados(session: Session = Depends(get_session)):
     return session.exec(select(Profesor).where(Profesor.active == False)).all()
 
@@ -35,7 +35,7 @@ def crear_profesor(profesor: ProfesorCreate, session: Session = Depends(get_sess
     return db_profesor
 
 
-@router.delete("/{profesor_id}", summary="Marcar profesor como eliminado (baja lógica)")
+@router.delete("/{profesor_id}", summary="Marcar profesor como eliminado")
 def eliminar_profesor(profesor_id: int, session: Session = Depends(get_session)):
     profesor = session.get(Profesor, profesor_id)
     if not profesor:
