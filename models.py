@@ -3,78 +3,86 @@ from datetime import date
 from sqlmodel import SQLModel, Field, Relationship
 
 
-class ReparacionMecanicoLink(SQLModel, table=True):
-    reparacion_id: Optional[int] = Field(default=None, foreign_key="reparacion.id", primary_key=True)
-    mecanico_id: Optional[int] = Field(default=None, foreign_key="mecanico.id", primary_key=True)
+class MatriculaProfesorLink(SQLModel, table=True):
+    matricula_id: Optional[int] = Field(default=None, foreign_key="matricula.id", primary_key=True)
+    profesor_id: Optional[int] = Field(default=None, foreign_key="profesor.id", primary_key=True)
 
 
-class ClienteBase(SQLModel):
+class EstudianteBase(SQLModel):
     nombre: Optional[str] = None
     telefono: Optional[str] = None
     correo: Optional[str] = None
 
-class Cliente(ClienteBase, table=True):
+class Estudiante(EstudianteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
-    carros: List["Carro"] = Relationship(back_populates="cliente")
+    matriculas: List["Matricula"] = Relationship(back_populates="estudiante")
+    historial: Optional["Historial"] = Relationship(back_populates="estudiante", sa_relationship_kwargs={"uselist": False})
 
-class ClienteCreate(ClienteBase):
+class EstudianteCreate(EstudianteBase):
     pass
 
 
-class CarroBase(SQLModel):
-    marca: Optional[str] = None
-    modelo: Optional[int] = None
-    anio: Optional[int] = None
-    placa: Optional[str] = None
+class MateriaBase(SQLModel):
+    nombre: Optional[str] = None
+    creditos: Optional[int] = None
+    codigo: Optional[str] = None
 
-class Carro(CarroBase, table=True):
+class Materia(MateriaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    cliente_id: Optional[int] = Field(default=None, foreign_key="cliente.id", nullable=True)
     active: bool = Field(default=True)
-    cliente: Optional[Cliente] = Relationship(back_populates="carros")
-    soat: Optional["SOAT"] = Relationship(back_populates="carro", sa_relationship_kwargs={"uselist": False})
-    reparaciones: List["Reparacion"] = Relationship(back_populates="carro")
+    
+    matriculas: List["Matricula"] = Relationship(back_populates="materia")
 
-class CarroCreate(CarroBase):
-    cliente_id: Optional[int] = None
+class MateriaCreate(MateriaBase):
+    pass
 
-class SOATBase(SQLModel):
+
+class HistorialBase(SQLModel):
     numero: Optional[str] = None
-    fecha_vigencia: Optional[date] = None
+    fecha_emision: Optional[date] = None
 
-class SOAT(SOATBase, table=True):
+class Historial(HistorialBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    carro_id: Optional[int] = Field(default=None, foreign_key="carro.id", unique=True, nullable=True)
-    carro: Optional[Carro] = Relationship(back_populates="soat")
+    estudiante_id: Optional[int] = Field(default=None, foreign_key="estudiante.id", unique=True, nullable=True)
+    
+    estudiante: Optional[Estudiante] = Relationship(back_populates="historial")
 
-class SOATCreate(SOATBase):
-    carro_id: int
+class HistorialCreate(HistorialBase):
+    estudiante_id: int
 
-class MecanicoBase(SQLModel):
+
+class ProfesorBase(SQLModel):
     nombre: Optional[str] = None
     especialidad: Optional[str] = None
 
-class Mecanico(MecanicoBase, table=True):
+class Profesor(ProfesorBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
-    reparaciones: List["Reparacion"] = Relationship(back_populates="mecanicos", link_model=ReparacionMecanicoLink)
+    
+    matriculas: List["Matricula"] = Relationship(back_populates="profesores", link_model=MatriculaProfesorLink)
 
-class MecanicoCreate(MecanicoBase):
+class ProfesorCreate(ProfesorBase):
     pass
 
-class ReparacionBase(SQLModel):
-    descripcion: Optional[str] = None
-    fecha: Optional[date] = None
-    costo: Optional[float] = None
 
-class Reparacion(ReparacionBase, table=True):
+class MatriculaBase(SQLModel):
+    nota_final: Optional[float] = None
+    fecha_registro: Optional[date] = Field(default_factory=date.today)
+    
+class Matricula(MatriculaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    carro_id: Optional[int] = Field(default=None, foreign_key="carro.id", nullable=True)
     active: bool = Field(default=True)
-    carro: Optional[Carro] = Relationship(back_populates="reparaciones")
-    mecanicos: List[Mecanico] = Relationship(back_populates="reparaciones", link_model=ReparacionMecanicoLink)
+    
+    estudiante_id: Optional[int] = Field(default=None, foreign_key="estudiante.id", nullable=True)
+    materia_id: Optional[int] = Field(default=None, foreign_key="materia.id", nullable=True)
+    
+    estudiante: Optional[Estudiante] = Relationship(back_populates="matriculas")
+    materia: Optional[Materia] = Relationship(back_populates="matriculas")
+    
+    profesores: List[Profesor] = Relationship(back_populates="matriculas", link_model=MatriculaProfesorLink)
 
-class ReparacionCreate(ReparacionBase):
-    carro_id: int
-    mecanico_ids: Optional[List[int]] = []
+class MatriculaCreate(MatriculaBase):
+    estudiante_id: int
+    materia_id: int
+    profesor_ids: Optional[List[int]] = []
