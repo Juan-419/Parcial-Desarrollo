@@ -4,13 +4,16 @@ from typing import List
 from db import get_session
 from models import Profesor, ProfesorCreate 
 
-router = APIRouter(prefix="/profesores", tags=["Profesores"]) # Prefijo corregido a plural y minúsculas
+router = APIRouter(prefix="/profesores", tags=["Profesores"]) 
 
 
 @router.get("/", response_model=List[Profesor], summary="Listar todos los profesores activos")
 def listar_profesores(session: Session = Depends(get_session)):
     return session.exec(select(Profesor).where(Profesor.active == True)).all()
 
+"""
+    Recupera una lista de todos los profesores que están marcados como activos en la base de datos.
+"""
 
 @router.get("/eliminados", response_model=List[Profesor], summary="Listar profesores que se fueron")
 def listar_profesores_eliminados(session: Session = Depends(get_session)):
@@ -28,6 +31,11 @@ def obtener_profesor(profesor_id: int, session: Session = Depends(get_session)):
 
 @router.post("/", response_model=Profesor, summary="Crear un nuevo profesor")
 def crear_profesor(profesor: ProfesorCreate, session: Session = Depends(get_session)):
+    """
+    Registra un nuevo profesor en el sistema.
+    - No requiere validación de unicidad según los requisitos del proyecto.
+    """
+    
     db_profesor = Profesor.model_validate(profesor)
     session.add(db_profesor)
     session.commit()

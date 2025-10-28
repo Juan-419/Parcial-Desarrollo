@@ -3,7 +3,6 @@ from sqlmodel import Session, select
 from typing import List
 from db import get_session
 from models import Estudiante, EstudianteCreate  
-# NUEVA IMPORTACIÓN REQUERIDA PARA LA CONSULTA RELACIONAL
 from sqlalchemy.orm import selectinload 
 
 router = APIRouter(prefix="/estudiantes", tags=["Estudiantes"])
@@ -32,7 +31,7 @@ def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_sessio
     """
     Consulta relacional obligatoria: Obtener estudiante y cursos matriculados.
     """
-    # CORRECCIÓN: Usamos selectinload para cargar las relaciones de matrícula y curso en una consulta
+
     statement = (
         select(Estudiante)
         .where(Estudiante.id == estudiante_id)
@@ -56,15 +55,16 @@ def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session =
 @router.post("/", response_model=Estudiante, status_code=201, summary="Crear un nuevo estudiante")
 def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(get_session)):
     """
-    Implementa la Lógica de Negocio: Cédula única y Correo único.
+   Crea un nuevo estudiante en la base de datos. 
+    Verifica que el teléfono (cédula) y el correo sean únicos.
+    - Retorna 409 Conflict si el teléfono o correo ya están registrados.
     """
-    # LÓGICA DE NEGOCIO 1: Validar Correo Único
+    
     correo_existente = session.exec(select(Estudiante).where(Estudiante.correo == estudiante.correo)).first()
     if correo_existente:
-        # Usamos 409 (Conflict) para violaciones de unicidad
         raise HTTPException(status_code=409, detail=f"El correo '{estudiante.correo}' ya está registrado.")
     
-    # LÓGICA DE NEGOCIO 2: Validar Cédula/Teléfono Único
+    
     telefono_existente = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante.telefono)).first()
     if telefono_existente:
         raise HTTPException(status_code=409, detail=f"La cédula/teléfono '{estudiante.telefono}' ya está registrado.")
@@ -95,8 +95,6 @@ def actualizar_estudiante(estudiante_id: int, estudiante_actualizado: Estudiante
     if not estudiante_db:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
 
-    # Nota: Aquí no verificamos unicidad porque un PUT podría no modificar el campo
-    # Pero si lo modifica, el constraint de la DB lo atraparía (y devolvería un 500)
     estudiante_db.nombre = estudiante_actualizado.nombre
     estudiante_db.telefono = estudiante_actualizado.telefono
     estudiante_db.correo = estudiante_actualizado.correo

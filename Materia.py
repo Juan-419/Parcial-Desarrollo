@@ -40,10 +40,9 @@ def crear_materia(materia: MateriaCreate, session: Session = Depends(get_session
     """
     Implementa la Lógica de Negocio: Código de curso único.
     """
-    # LÓGICA DE NEGOCIO 3: Validar Código de Curso Único
+    
     codigo_existente = session.exec(select(Materia).where(Materia.codigo == materia.codigo)).first()
     if codigo_existente:
-        # Usamos 409 (Conflict) para unicidad
         raise HTTPException(status_code=409, detail=f"Ya existe una materia con el código '{materia.codigo}'.")
 
 

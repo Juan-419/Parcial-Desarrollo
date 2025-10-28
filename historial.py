@@ -16,7 +16,10 @@ def listar_historiales(session: Session = Depends(get_session)):
 
 @router.get("/estudiante/{estudiante_id}", response_model=Historial, summary="Obtener Historial por ID del Estudiante")
 def obtener_historial_por_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
-    
+    """
+    Busca el Historial Académico asociado a un Estudiante específico.
+    - Retorna 404 Not Found si no existe Historial para ese ID.
+    """
     historial = session.exec(select(Historial).where(Historial.estudiante_id == estudiante_id)).first()
     if not historial:
         raise HTTPException(status_code=404, detail=f"No se encontró Historial para el Estudiante ID {estudiante_id}")
@@ -34,6 +37,12 @@ def obtener_historial(historial_id: int, session: Session = Depends(get_session)
 @router.post("/", response_model=Historial, status_code=201, summary="Crear un nuevo Historial")
 def crear_historial(nuevo: HistorialCreate, session: Session = Depends(get_session)):
 
+    """
+    Crea un nuevo Historial Académico. 
+    Aplica Lógica de Negocio: La relación es 1:1, por lo que un estudiante solo puede tener un Historial.
+    - Retorna 400 Bad Request si el Estudiante ya tiene un Historial.
+    - Retorna 404 Not Found si el Estudiante ID no existe.
+    """
     
     estudiante = session.get(Estudiante, nuevo.estudiante_id)
     if not estudiante or not estudiante.active:
