@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from typing import List
+# Se importan List y los nuevos Optional y selectinload
+from typing import List, Optional 
 from db import get_session
 from models import Estudiante, EstudianteCreate  
 from sqlalchemy.orm import selectinload 
@@ -8,18 +9,33 @@ from sqlalchemy.orm import selectinload
 router = APIRouter(prefix="/estudiantes", tags=["Estudiantes"])
 
 
-@router.get("/", response_model=List[Estudiante], summary="Listar todos los estudiantes activos")
-def listar_estudiantes(session: Session = Depends(get_session)):
-    return session.exec(select(Estudiante).where(Estudiante.active == True)).all()
+@router.get("/", response_model=List[Estudiante], summary="Listar todos los estudiantes (Filtro por Semestre)")
+def listar_estudiantes(session: Session = Depends(get_session), semestre: Optional[int] = None):
+    """
+    Lista todos los estudiantes activos, con la opción de filtrar por semestre académico.
+    """
+    statement = select(Estudiante).where(Estudiante.active == True)
+    
+    if semestre is not None:
+        statement = statement.where(Estudiante.semestre == semestre)
+        
+    return session.exec(statement).all()
 
 
 @router.get("/eliminados", response_model=List[Estudiante], summary="Listar estudiantes dados de baja ")
 def listar_estudiantes_eliminados(session: Session = Depends(get_session)):
+    """
+    Lista todos los estudiantes que han sido marcados como inactivos.
+    """
     return session.exec(select(Estudiante).where(Estudiante.active == False)).all()
 
 
 @router.get("/correo/{estudiante_correo}", response_model=Estudiante, summary="Buscar estudiante por correo")
 def obtener_estudiante_por_correo(estudiante_correo: str, session: Session = Depends(get_session)):
+    """
+    Busca un estudiante específico utilizando su dirección de correo electrónico.
+    - Retorna 404 Not Found si el correo no existe.
+    """
     estudiante = session.exec(select(Estudiante).where(Estudiante.correo == estudiante_correo)).first()
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado o correo mal digitado")
@@ -29,9 +45,10 @@ def obtener_estudiante_por_correo(estudiante_correo: str, session: Session = Dep
 @router.get("/{estudiante_id}", response_model=Estudiante, summary="Obtener estudiante por ID con sus matrículas")
 def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
     """
-    Consulta relacional obligatoria: Obtener estudiante y cursos matriculados.
+    Consulta relacional obligatoria: Obtener estudiante y sus cursos matriculados.
+    Utiliza selectinload para cargar las matrículas de manera eficiente.
+    - Retorna 404 Not Found si el ID no existe.
     """
-
     statement = (
         select(Estudiante)
         .where(Estudiante.id == estudiante_id)
@@ -46,6 +63,10 @@ def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_sessio
 
 @router.get("/telefono/{estudiante_telefono}", response_model=Estudiante, summary="Buscar estudiante por teléfono (Cédula)")
 def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session = Depends(get_session)):
+    """
+    Busca un estudiante utilizando el teléfono (asumido como cédula o ID único).
+    - Retorna 404 Not Found si el teléfono no existe.
+    """
     estudiante = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante_telefono)).first()
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
@@ -55,15 +76,14 @@ def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session =
 @router.post("/", response_model=Estudiante, status_code=201, summary="Crear un nuevo estudiante")
 def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(get_session)):
     """
-   Crea un nuevo estudiante en la base de datos. 
-    Verifica que el teléfono (cédula) y el correo sean únicos.
+    Crea un nuevo estudiante en la base de datos. 
+    Verifica que el teléfono (cédula) y el correo sean únicos (Lógica de Negocio).
     - Retorna 409 Conflict si el teléfono o correo ya están registrados.
     """
-    
+
     correo_existente = session.exec(select(Estudiante).where(Estudiante.correo == estudiante.correo)).first()
     if correo_existente:
         raise HTTPException(status_code=409, detail=f"El correo '{estudiante.correo}' ya está registrado.")
-    
     
     telefono_existente = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante.telefono)).first()
     if telefono_existente:
@@ -79,6 +99,10 @@ def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(ge
 
 @router.delete("/{estudiante_id}", summary="Marcar estudiante como eliminado ")
 def eliminar_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
+    """
+    Realiza una eliminación lógica, marcando al estudiante como inactivo.
+    - Retorna 404 Not Found si el ID no existe.
+    """
     estudiante = session.get(Estudiante, estudiante_id)
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
@@ -91,6 +115,10 @@ def eliminar_estudiante(estudiante_id: int, session: Session = Depends(get_sessi
 
 @router.put("/{estudiante_id}", response_model=Estudiante, summary="Actualizar estudiante completo")
 def actualizar_estudiante(estudiante_id: int, estudiante_actualizado: EstudianteCreate, session: Session = Depends(get_session)):
+    """
+    Actualiza completamente un registro de estudiante.
+    - Retorna 404 Not Found si el ID no existe.
+    """
     estudiante_db = session.get(Estudiante, estudiante_id)
     if not estudiante_db:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
