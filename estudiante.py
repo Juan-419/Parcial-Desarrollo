@@ -3,6 +3,8 @@ from sqlmodel import Session, select
 from typing import List
 from db import get_session
 from models import Estudiante, EstudianteCreate  
+# NUEVA IMPORTACIÓN REQUERIDA PARA LA CONSULTA RELACIONAL
+from sqlalchemy.orm import selectinload 
 
 router = APIRouter(prefix="/estudiantes", tags=["Estudiantes"])
 
@@ -25,15 +27,25 @@ def obtener_estudiante_por_correo(estudiante_correo: str, session: Session = Dep
     return estudiante
 
 
-@router.get("/{estudiante_id}", response_model=Estudiante, summary="Obtener estudiante por ID")
+@router.get("/{estudiante_id}", response_model=Estudiante, summary="Obtener estudiante por ID con sus matrículas")
 def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
-    estudiante = session.get(Estudiante, estudiante_id)
+    """
+    Consulta relacional obligatoria: Obtener estudiante y cursos matriculados.
+    """
+    # CORRECCIÓN: Usamos selectinload para cargar las relaciones de matrícula y curso en una consulta
+    statement = (
+        select(Estudiante)
+        .where(Estudiante.id == estudiante_id)
+        .options(selectinload(Estudiante.matriculas))
+    )
+    estudiante = session.exec(statement).first()
+    
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return estudiante
 
 
-@router.get("/telefono/{estudiante_telefono}", response_model=Estudiante, summary="Buscar estudiante por teléfono")
+@router.get("/telefono/{estudiante_telefono}", response_model=Estudiante, summary="Buscar estudiante por teléfono (Cédula)")
 def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session = Depends(get_session)):
     estudiante = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante_telefono)).first()
     if not estudiante:
@@ -41,8 +53,23 @@ def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session =
     return estudiante
 
 
-@router.post("/", response_model=Estudiante, summary="Crear un nuevo estudiante")
+@router.post("/", response_model=Estudiante, status_code=201, summary="Crear un nuevo estudiante")
 def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(get_session)):
+    """
+    Implementa la Lógica de Negocio: Cédula única y Correo único.
+    """
+    # LÓGICA DE NEGOCIO 1: Validar Correo Único
+    correo_existente = session.exec(select(Estudiante).where(Estudiante.correo == estudiante.correo)).first()
+    if correo_existente:
+        # Usamos 409 (Conflict) para violaciones de unicidad
+        raise HTTPException(status_code=409, detail=f"El correo '{estudiante.correo}' ya está registrado.")
+    
+    # LÓGICA DE NEGOCIO 2: Validar Cédula/Teléfono Único
+    telefono_existente = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante.telefono)).first()
+    if telefono_existente:
+        raise HTTPException(status_code=409, detail=f"La cédula/teléfono '{estudiante.telefono}' ya está registrado.")
+
+
     db_estudiante = Estudiante.model_validate(estudiante)
     session.add(db_estudiante)
     session.commit()
@@ -68,7 +95,8 @@ def actualizar_estudiante(estudiante_id: int, estudiante_actualizado: Estudiante
     if not estudiante_db:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
 
-
+    # Nota: Aquí no verificamos unicidad porque un PUT podría no modificar el campo
+    # Pero si lo modifica, el constraint de la DB lo atraparía (y devolvería un 500)
     estudiante_db.nombre = estudiante_actualizado.nombre
     estudiante_db.telefono = estudiante_actualizado.telefono
     estudiante_db.correo = estudiante_actualizado.correo

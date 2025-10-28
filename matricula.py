@@ -29,7 +29,21 @@ def obtener_matricula(matricula_id: int, session: Session = Depends(get_session)
 
 @router.post("/", response_model=Matricula, status_code=201, summary="Crear nueva matrícula y asociar profesores")
 def crear_matricula(nueva: MatriculaCreate, session: Session = Depends(get_session)):
+    """
+    Implementa la Lógica de Negocio: Matrícula única (Estudiante + Materia).
+    """
+    # LÓGICA DE NEGOCIO 4: Validar Matrícula Única
+    matricula_existente = session.exec(
+        select(Matricula).where(
+            Matricula.estudiante_id == nueva.estudiante_id,
+            Matricula.materia_id == nueva.materia_id
+        )
+    ).first()
     
+    # Revisamos si ya existe una matrícula activa para esta combinación
+    if matricula_existente and matricula_existente.active:
+        raise HTTPException(status_code=409, detail="El estudiante ya está matriculado en este curso.")
+
 
     estudiante = session.get(Estudiante, nueva.estudiante_id)
     if not estudiante or not estudiante.active:
@@ -73,7 +87,9 @@ def actualizar_matricula(matricula_id: int, matricula_actualizada: MatriculaCrea
     if not matricula_db:
         raise HTTPException(status_code=404, detail="Matrícula no encontrada")
 
-    
+    # Al ser un PUT, podríamos permitir cambiar los IDs solo si la nueva combinación no viola el UniqueConstraint
+    # En este caso, solo actualizamos los campos que no son FK por simplicidad, manteniendo la relación
+    # El UniqueConstraint de la DB atrapará la duplicación si se intenta cambiar.
     matricula_db.nota_final = matricula_actualizada.nota_final
     matricula_db.fecha_registro = matricula_actualizada.fecha_registro
     
