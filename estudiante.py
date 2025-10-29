@@ -60,7 +60,6 @@ def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_sessio
     return estudiante
 
 
-
 @router.get("/cedula/{estudiante_cedula}", response_model=Estudiante, summary="Buscar estudiante por cédula")
 def obtener_estudiante_por_cedula(estudiante_cedula: str, session: Session = Depends(get_session)):
     """
@@ -80,11 +79,10 @@ def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(ge
     Verifica que la cédula y el correo sean únicos (Lógica de Negocio).
     - Retorna 409 Conflict si la cédula o correo ya están registrados.
     """
+
     correo_existente = session.exec(select(Estudiante).where(Estudiante.correo == estudiante.correo)).first()
     if correo_existente:
         raise HTTPException(status_code=409, detail=f"El correo '{estudiante.correo}' ya está registrado.")
-    
-
     cedula_existente = session.exec(select(Estudiante).where(Estudiante.cedula == estudiante.cedula)).first()
     if cedula_existente:
         raise HTTPException(status_code=409, detail=f"La cédula '{estudiante.cedula}' ya está registrada.")
@@ -97,20 +95,21 @@ def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(ge
     return db_estudiante
 
 
-@router.delete("/{estudiante_id}", summary="Marcar estudiante como eliminado ")
+@router.delete("/{estudiante_id}", summary="Eliminar estudiante FÍSICAMENTE (Activa Cascada)")
 def eliminar_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
     """
-    Realiza una eliminación lógica, marcando al estudiante como inactivo.
+    Elimina físicamente al estudiante de la base de datos.
+    LÓGICA DE NEGOCIO: La eliminación activa la cascada en models.py, 
+    eliminando automáticamente sus matrículas y historial asociados.
     - Retorna 404 Not Found si el ID no existe.
     """
     estudiante = session.get(Estudiante, estudiante_id)
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
    
-    estudiante.active = False
-    session.add(estudiante)
+    session.delete(estudiante)
     session.commit()
-    return {"mensaje": f"Estudiante {estudiante_id} marcado como eliminado"}
+    return {"mensaje": f"Estudiante {estudiante_id} y sus matrículas/historial asociados han sido eliminados."}
 
 
 @router.put("/{estudiante_id}", response_model=Estudiante, summary="Actualizar estudiante completo")
@@ -126,6 +125,7 @@ def actualizar_estudiante(estudiante_id: int, estudiante_actualizado: Estudiante
     estudiante_db.nombre = estudiante_actualizado.nombre
     estudiante_db.cedula = estudiante_actualizado.cedula
     estudiante_db.correo = estudiante_actualizado.correo
+    estudiante_db.semestre = estudiante_actualizado.semestre
 
     session.add(estudiante_db)
     session.commit()

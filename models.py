@@ -12,16 +12,21 @@ class EstudianteBase(SQLModel):
     nombre: Optional[str] = None
     cedula: Optional[str] = None
     correo: Optional[str] = None
-    semestre: Optional[int] = None
+    semestre: Optional[int] = None 
 
 
 class Estudiante(EstudianteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
-    
-    matriculas: List["Matricula"] = Relationship(back_populates="estudiante")
-    historial: Optional["Historial"] = Relationship(back_populates="estudiante", sa_relationship_kwargs={"uselist": False})
 
+    matriculas: List["Matricula"] = Relationship(
+        back_populates="estudiante",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+    historial: Optional["Historial"] = Relationship(
+        back_populates="estudiante", 
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"} 
+    )
     __table_args__ = (
         UniqueConstraint("cedula", name="uq_estudiante_cedula"),
         UniqueConstraint("correo", name="uq_estudiante_correo"),
@@ -34,13 +39,14 @@ class EstudianteCreate(EstudianteBase):
 class MateriaBase(SQLModel):
     nombre: Optional[str] = None
     creditos: Optional[int] = None
-    codigo: Optional[str] = None
+    codigo: Optional[str] = None 
 
 class Materia(MateriaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
 
     matriculas: List["Matricula"] = Relationship(back_populates="materia")
+
     __table_args__ = (
         UniqueConstraint("codigo", name="uq_materia_codigo"),
     )
@@ -91,7 +97,6 @@ class Matricula(MatriculaBase, table=True):
     materia: Optional[Materia] = Relationship(back_populates="matriculas")
 
     profesores: List[Profesor] = Relationship(back_populates="matriculas", link_model=MatriculaProfesorLink)
-
     __table_args__ = (
         UniqueConstraint("estudiante_id", "materia_id", name="uq_matricula_estudiante_materia"),
     )
