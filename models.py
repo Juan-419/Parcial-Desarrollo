@@ -1,7 +1,6 @@
 from typing import Optional, List
 from datetime import date
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import UniqueConstraint 
+from sqlmodel import SQLModel, Field, Relationship, UniqueConstraint
 
 
 class MatriculaProfesorLink(SQLModel, table=True):
@@ -11,14 +10,22 @@ class MatriculaProfesorLink(SQLModel, table=True):
 
 class EstudianteBase(SQLModel):
     nombre: Optional[str] = None
-    telefono: Optional[str] = Field(default=None, unique=True)
-    correo: Optional[str] = Field(default=None, unique=True) 
+    cedula: Optional[str] = None
+    correo: Optional[str] = None
+    semestre: Optional[int] = None
+
 
 class Estudiante(EstudianteBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
-    matriculas: List["Matricula"] = Relationship(back_populates="estudiante") 
+    
+    matriculas: List["Matricula"] = Relationship(back_populates="estudiante")
     historial: Optional["Historial"] = Relationship(back_populates="estudiante", sa_relationship_kwargs={"uselist": False})
+
+    __table_args__ = (
+        UniqueConstraint("cedula", name="uq_estudiante_cedula"),
+        UniqueConstraint("correo", name="uq_estudiante_correo"),
+    )
 
 class EstudianteCreate(EstudianteBase):
     pass
@@ -27,26 +34,27 @@ class EstudianteCreate(EstudianteBase):
 class MateriaBase(SQLModel):
     nombre: Optional[str] = None
     creditos: Optional[int] = None
-    
-    codigo: Optional[str] = Field(default=None, unique=True) 
+    codigo: Optional[str] = None
 
 class Materia(MateriaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     active: bool = Field(default=True)
-    
+
     matriculas: List["Matricula"] = Relationship(back_populates="materia")
-    profesores: List["Profesor"] = Relationship(back_populates="materias", link_model=MatriculaProfesorLink)
+    __table_args__ = (
+        UniqueConstraint("codigo", name="uq_materia_codigo"),
+    )
 
 class MateriaCreate(MateriaBase):
     pass
 
 
 class HistorialBase(SQLModel):
-    puntaje_icfes: Optional[float] = None
+    nota_promedio: Optional[float] = None
+    estudiante_id: Optional[int] = Field(default=None, foreign_key="estudiante.id", nullable=True)
     
 class Historial(HistorialBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    estudiante_id: Optional[int] = Field(default=None, foreign_key="estudiante.id", nullable=True)
     
     estudiante: Optional[Estudiante] = Relationship(back_populates="historial")
 
@@ -79,14 +87,16 @@ class Matricula(MatriculaBase, table=True):
     estudiante_id: Optional[int] = Field(default=None, foreign_key="estudiante.id", nullable=True)
     materia_id: Optional[int] = Field(default=None, foreign_key="materia.id", nullable=True)
     
-    
-    __table_args__ = (UniqueConstraint("estudiante_id", "materia_id"),) 
-
     estudiante: Optional[Estudiante] = Relationship(back_populates="matriculas")
     materia: Optional[Materia] = Relationship(back_populates="matriculas")
+
     profesores: List[Profesor] = Relationship(back_populates="matriculas", link_model=MatriculaProfesorLink)
+
+    __table_args__ = (
+        UniqueConstraint("estudiante_id", "materia_id", name="uq_matricula_estudiante_materia"),
+    )
 
 class MatriculaCreate(MatriculaBase):
     estudiante_id: int
     materia_id: int
-    profesor_ids: List[int] = [] 
+    profesores_ids: Optional[List[int]] = None

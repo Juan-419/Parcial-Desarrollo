@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-# Se importan List y los nuevos Optional y selectinload
 from typing import List, Optional 
 from db import get_session
 from models import Estudiante, EstudianteCreate  
@@ -61,13 +60,14 @@ def obtener_estudiante(estudiante_id: int, session: Session = Depends(get_sessio
     return estudiante
 
 
-@router.get("/telefono/{estudiante_telefono}", response_model=Estudiante, summary="Buscar estudiante por teléfono (Cédula)")
-def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session = Depends(get_session)):
+
+@router.get("/cedula/{estudiante_cedula}", response_model=Estudiante, summary="Buscar estudiante por cédula")
+def obtener_estudiante_por_cedula(estudiante_cedula: str, session: Session = Depends(get_session)):
     """
-    Busca un estudiante utilizando el teléfono (asumido como cédula o ID único).
-    - Retorna 404 Not Found si el teléfono no existe.
+    Busca un estudiante utilizando su cédula (ID único).
+    - Retorna 404 Not Found si la cédula no existe.
     """
-    estudiante = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante_telefono)).first()
+    estudiante = session.exec(select(Estudiante).where(Estudiante.cedula == estudiante_cedula)).first()
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return estudiante
@@ -77,17 +77,17 @@ def obtener_estudiante_por_telefono(estudiante_telefono: str, session: Session =
 def crear_estudiante(estudiante: EstudianteCreate, session: Session = Depends(get_session)):
     """
     Crea un nuevo estudiante en la base de datos. 
-    Verifica que el teléfono (cédula) y el correo sean únicos (Lógica de Negocio).
-    - Retorna 409 Conflict si el teléfono o correo ya están registrados.
+    Verifica que la cédula y el correo sean únicos (Lógica de Negocio).
+    - Retorna 409 Conflict si la cédula o correo ya están registrados.
     """
-
     correo_existente = session.exec(select(Estudiante).where(Estudiante.correo == estudiante.correo)).first()
     if correo_existente:
         raise HTTPException(status_code=409, detail=f"El correo '{estudiante.correo}' ya está registrado.")
     
-    telefono_existente = session.exec(select(Estudiante).where(Estudiante.telefono == estudiante.telefono)).first()
-    if telefono_existente:
-        raise HTTPException(status_code=409, detail=f"La cédula/teléfono '{estudiante.telefono}' ya está registrado.")
+
+    cedula_existente = session.exec(select(Estudiante).where(Estudiante.cedula == estudiante.cedula)).first()
+    if cedula_existente:
+        raise HTTPException(status_code=409, detail=f"La cédula '{estudiante.cedula}' ya está registrada.")
 
 
     db_estudiante = Estudiante.model_validate(estudiante)
@@ -124,7 +124,7 @@ def actualizar_estudiante(estudiante_id: int, estudiante_actualizado: Estudiante
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
 
     estudiante_db.nombre = estudiante_actualizado.nombre
-    estudiante_db.telefono = estudiante_actualizado.telefono
+    estudiante_db.cedula = estudiante_actualizado.cedula
     estudiante_db.correo = estudiante_actualizado.correo
 
     session.add(estudiante_db)
