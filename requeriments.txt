@@ -3,3 +3,5 @@ uvicorn[standard]
 sqlmodel
 python-multipart
 reportlab
+SQLAlchemy
+psycopg2-binary
