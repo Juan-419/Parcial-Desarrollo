@@ -21,7 +21,7 @@ Sigue estos pasos para levantar el proyecto en tu máquina local.
 ### 1\. Clonar el Repositorio
 
 ```bash
-git clone https://docs.github.com/es/repositories/creating-and-managing-repositories/quickstart-for-repositories
+git clone https://github.com/Juan-419/Parcial-Desarrollo.git
 cd [Nombre de la Carpeta del Proyecto]
 ```
 
