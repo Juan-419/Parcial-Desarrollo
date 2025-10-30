@@ -68,12 +68,12 @@ def actualizar_historial(historial_id: int, historial_actualizado: HistorialBase
         raise HTTPException(status_code=404, detail="Historial no encontrado")
 
     
-    if hasattr(historial_actualizado, 'estudiante_id') and historial_actualizado.estudiante_id != historial_db.estudiante_id:
+    if hasattr(historial_actualizado, 'estudiante_id') and historial_actualizado.estudiante_id != historial_db.estudiante_id: #Has atribute
         raise HTTPException(status_code=400, detail="El estudiante_id no puede ser modificado directamente en este endpoint de PUT. Cree un nuevo Historial para otro Estudiante.")
 
     update_data = historial_actualizado.model_dump(exclude_unset=True)
     for key, value in update_data.items():
-        setattr(historial_db, key, value)
+        setattr(historial_db, key, value)  #Set atribute
 
     session.add(historial_db)
     session.commit()
